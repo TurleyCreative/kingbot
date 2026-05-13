@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>K.I.N.G.B.O.T</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <!-- Turley Typekit Font -->
 <link rel="stylesheet" href="https://use.typekit.net/cxf5avz.css">
 <style>
@@ -398,11 +399,11 @@ function handlePushback(retry){
  *  Power Automate sends the email via your internal Outlook.
  *  user_email is included so you can CC them in the flow.
  * ==================================== */
-function buildPayload(){
+async function buildPayload(){
   const dueDateNice=brief.due_date?niceDate(brief.due_date):"Not set";
   const cs=brief.content_ready===null?"Not specified":brief.content_ready?"Yes":"No \u2014 "+(brief.content_detail||"details pending");
   const fmtLine=brief.format.join(", ")+(brief.format_spec?" ("+brief.format_spec+")":"");
-  return {
+  const payload={
     user_email: brief.user_email,
     job_code: brief.job_code,
     client: brief.client,
@@ -413,16 +414,22 @@ function buildPayload(){
     content_ready: cs,
     summary: brief.summary,
     content_copy: brief.content_copy || "None provided",
-    notes: brief.notes || "None",
-    ...(uploadedFiles.length > 0 && {
-      attachments: uploadedFiles.map(f=>({
-        "@odata.type": "#microsoft.graph.fileAttachment",
-        "name": f.name,
-        "contentType": f.contentType,
-        "contentBytes": f.contentBytes
-      }))
-    })
+    notes: brief.notes || "None"
   };
+  if(uploadedFiles.length===1){
+    payload.attachmentName=uploadedFiles[0].name;
+    payload.attachmentContent=uploadedFiles[0].contentBytes;
+  } else if(uploadedFiles.length>1){
+    const zip=new JSZip();
+    for(const f of uploadedFiles){
+      zip.file(f.name,f.contentBytes,{base64:true});
+    }
+    const zipBase64=await zip.generateAsync({type:"base64"});
+    const jobCode=brief.job_code||"brief";
+    payload.attachmentName=`${jobCode}-attachments.zip`;
+    payload.attachmentContent=zipBase64;
+  }
+  return payload;
 }
 
 async function handleSend(){
@@ -435,7 +442,7 @@ async function handleSend(){
     const resp = await fetch(PA_WEBHOOK_URL, {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(buildPayload())
+      body: JSON.stringify(await buildPayload())
     });
     if(!resp.ok) throw new Error("HTTP "+resp.status);
 
