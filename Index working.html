@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K.I.N.G.B.O.T</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<!-- Turley Typekit Font -->
+<link rel="stylesheet" href="https://use.typekit.net/cxf5avz.css">
+<style>
+  :root {
+    --bg:#faf5ee;--card:#FFFFFF;--panel-bg:#F3EDE4;
+    --accent:#334087;--accent-dark:#252525;--accent-glow:rgba(51,64,135,.15);
+    --text:#252525;--text-muted:rgba(37,37,37,.45);
+    --border:rgba(51,64,135,.12);--border-hi:rgba(41, 42, 49, 0.22);--subtle:rgba(51,64,135,.04);
+    --user-bg:#334087;--user-text:#FFFFFF;
+    --green:#76BB43;--red:#EC2D39;--crown-fill:#FFFFFF;--crown-stroke:#FFFFFF;
+    --font:"tt-commons-pro",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+  #boot{position:fixed;inset:0;z-index:1000;background:#252525;display:flex;align-items:center;justify-content:center;transition:opacity .6s ease}
+  #boot::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 3px);pointer-events:none;z-index:1}
+  #boot.done{opacity:0;pointer-events:none}
+  #boot canvas{position:absolute;inset:0}
+  .app{display:flex;height:100vh;opacity:0;transition:opacity .8s ease .3s}
+  .app.visible{opacity:1}
+  .chat-col{flex:1;display:flex;flex-direction:column;min-width:0}
+  .header{padding:14px 20px;border-bottom:2px solid var(--border);background:var(--bg);display:flex;align-items:center;gap:12px}
+  .header-icon{width:44px;height:44px;border-radius:0%;background:var(--accent);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px var(--accent-glow)}
+  .header-text{flex:1}
+  .header-title{font-weight:600;font-size:20px;color:var(--accent);letter-spacing:1.8px}
+  .header-sub{font-size:12px;color:#252525;letter-spacing:1.2px}
+  .status-dot{width:8px;height:8px;border-radius:0%;background:var(--green);box-shadow:0 0 6px rgba(118,187,67,.4)}
+  .status-text{font-size:11px;color:var(--text-muted);margin-left:-4px}
+  .toggle-btn{margin-left:10px;border:1.5px solid var(--accent);border-radius:0px;padding:7px 14px;font-size:11px;font-weight:400;cursor:pointer;letter-spacing:.5px;font-family:var(--font);transition:all .2s}
+  .toggle-btn.active{background:var(--accent);color:#FFFFFF}
+  .toggle-btn:not(.active){background:transparent;color:var(--accent)}
+  .messages{flex:1;overflow-y:auto;padding:22px 18px}
+  .messages::-webkit-scrollbar{width:6px}
+  .messages::-webkit-scrollbar-track{background:transparent}
+  .messages::-webkit-scrollbar-thumb{background:rgba(51,64,135,.2);border-radius:3px}
+  .msg{margin-bottom:16px;animation:fadeUp .3s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .msg-bot{display:flex;gap:10px;align-items:flex-start;max-width:88%}
+  .msg-avatar{width:36px;height:36px;border-radius:0%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid var(--accent)}
+  .msg-bubble{background:var(--card);padding:13px 17px;border-radius:0px;border:1px solid var(--border)}
+  .msg-bubble strong{color:var(--accent);font-weight:600;}
+  .msg-tip{margin-top:7px;padding:9px 13px;border-radius:0px;background:var(--subtle);border:1px solid var(--border);font-size:12.5px;color:var(--accent);line-height:1.5}
+  .msg-user{display:flex;justify-content:flex-end}
+  .msg-user-bubble{background:var(--user-bg);color:var(--user-text);padding:13px 17px;border-radius:0px;max-width:75%;font-size:14px;font-weight:500;line-height:1.5}
+  .typing{display:flex;gap:10px;align-items:flex-start;margin-bottom:16px}
+  .typing-dots{background:var(--card);padding:14px 20px;border-radius:0px; border:1px solid var(--border);color:var(--accent);font-size:22px;letter-spacing:4px}
+  .typing-dots span{animation:blink 1.4s infinite}
+  .typing-dots span:nth-child(2){animation-delay:.2s}
+  .typing-dots span:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+  .input-area{padding:14px 18px;border-top:1px solid var(--border);background:var(--card)}
+  .input-row{display:flex;gap:8px}
+  .text-input{flex:1;background:var(--subtle);border:1px solid var(--border);color:var(--text);border-radius:0px;padding:12px 16px;font-size:14px;outline:none;font-family:var(--font)}
+  .text-input::placeholder{color:var(--text-muted)}
+  .text-input:focus{border-color:var(--border-hi)}
+  .text-area{width:100%;background:var(--subtle);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:12px 16px;font-size:14px;outline:none;font-family:var(--font);resize:vertical;min-height:100px;margin-bottom:8px}
+  .text-area::placeholder{color:var(--text-muted)}
+  .text-area:focus{border-color:var(--border-hi)}
+  .send-btn{background:var(--accent);color:#FFFFFF;border:none;border-radius:0px;padding:12px 28px;font-weight:500;cursor:pointer;font-size:14px;font-family:var(--font)}
+  .send-btn:hover{filter:brightness(1.1)}
+  .btn-row{display:flex;gap:8px;margin-bottom:12px}
+  .btn-primary{flex:1;background:var(--accent);color:#FFFFFF;border:none;border-radius:0px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}
+  .btn-secondary{flex:1;background:transparent;color:var(--accent);border:1.5px solid var(--accent);border-radius:0px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}
+  .btn-primary:hover,.btn-secondary:hover{filter:brightness(1.1)}
+  .chip-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .chip{background:var(--subtle);border:1px solid var(--border);color:var(--text);border-radius:0px;padding:7px 14px;font-size:12.5px;cursor:pointer;white-space:nowrap;font-family:var(--font);transition:all .15s}
+  .chip:hover{background:rgba(96,178,227,.12)}
+  .chip.active{background:var(--accent);color:#FFFFFF;border-color:var(--accent)}
+  .date-row{display:flex;gap:8px;margin-bottom:12px}
+  .date-input{flex:1;background:var(--subtle);border:1px solid var(--border);color:var(--text);border-radius:0px;padding:11px 14px;font-size:14px;outline:none;font-family:var(--font);color-scheme:light;-webkit-appearance:none}
+  .date-input:focus{border-color:var(--border-hi)}
+  .date-confirm{background:var(--accent);color:#FFFFFF;border:none;border-radius:0px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;opacity:.4;pointer-events:none;transition:opacity .2s}
+  .date-confirm.ready{opacity:1;pointer-events:auto}
+  .date-confirm.ready:hover{filter:brightness(1.1)}
+  .file-zone{border:2px dashed var(--border-hi);border-radius:0px;padding:20px;text-align:center;margin-bottom:8px;cursor:pointer;transition:all .2s}
+  .file-zone:hover{border-color:var(--accent);background:var(--subtle)}
+  .file-zone input{display:none}
+  .file-zone-text{color:var(--text-muted);font-size:13px}
+  .file-list{margin-bottom:8px}
+  .file-item{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--subtle);border-radius:0px;margin-bottom:4px;font-size:12.5px}
+  .file-item-name{color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .file-item-size{color:var(--text-muted);margin:0 8px;flex-shrink:0}
+  .file-remove{color:var(--red);cursor:pointer;font-weight:700;padding:2px 6px;border:none;background:none;font-size:14px;font-family:var(--font)}
+  .send-brief-btn{width:100%;background:var(--accent);color:var(--user-text);border:none;border-radius:0px;padding:15px;font-size:15px;font-weight:500;cursor:pointer;letter-spacing:.5px;font-family:var(--font);box-shadow:0 4px 16px var(--accent-glow)}
+  .send-brief-btn:hover{filter:brightness(1.1)}
+  .send-brief-btn:disabled{opacity:.5;pointer-events:none}
+  .panel{width:310px;border-left:1px solid var(--border);background:#252525;overflow-y:auto;flex-shrink:0;display:none}
+  .panel.open{display:flex;flex-direction:column}
+  .panel-header{padding:18px 20px;border-bottom:0px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .panel-title{font-weight:700;font-size:14px;color:#FFFFFF}
+  .panel-count{font-size:11px;color:#ffffff;margin-top:3px}
+  .panel-ring{position:relative;display:flex;align-items:center;justify-content:center}
+  .panel-ring-pct{position:absolute;font-size:11px;font-weight:700;color:#61b2e3;}
+  .panel-body{padding:16px 20px;flex:1}
+  .field-card{margin-bottom:14px;padding:12px 14px;border-radius:0px;transition:all .3s}
+  .field-card.filled{background:transparent;border:1px solid var(--border)}
+  .field-card.empty{background:transparent;border:1px solid var(--subtle)}
+  .field-label{font-size:13px;letter-spacing:1.3px;color:#ffffff;margin-bottom:5px;font-weight:400}
+  .field-value{font-size:13px;color:#61b2e3; line-height:1.5;word-break:break-word}
+  .field-value.empty{color:#fff}
+  .panel-footer{padding:14px 20px;border-top:1px solid var(--border);text-align:center;font-size:11px;color:rgba(255,255,255,.5)}
+  .panel-footer.sent{color:var(--green);font-weight:600;font-size:12px}
+  .field-edit-btn{display:block;margin-top:6px;background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.45);font-size:10px;letter-spacing:.8px;padding:3px 9px;cursor:pointer;font-family:var(--font);transition:all .15s;border-radius:0;width:fit-content}
+  .field-edit-btn:hover{border-color:rgba(255,255,255,.6);color:#fff}
+  @media(max-width:700px){.panel{position:fixed;right:0;top:0;bottom:0;width:85vw;z-index:10;box-shadow:-4px 0 20px rgba(0,0,0,.5)}}
+</style>
+</head>
+<body>
+<div id="boot"></div>
+<div class="app" id="app">
+  <div class="chat-col">
+    <div class="header">
+      <div class="header-icon" id="crownIcon"></div>
+      <div class="header-text">
+        <div class="header-title">K.I.N.G.B.O.T</div>
+        <div class="header-sub">Key Info & Needs Gathering, Brief Optimisation Tool</div>
+      </div>
+      <div class="status-dot"></div>
+      <span class="status-text">Online</span>
+      <button class="toggle-btn" id="togglePanel" onclick="togglePanel()">Show Brief</button>
+    </div>
+    <div class="messages" id="messages"></div>
+    <div class="input-area" id="inputArea"></div>
+  </div>
+  <div class="panel" id="panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">The Brief</div>
+        <div class="panel-count" id="panelCount">0 / 9 fields locked in</div>
+      </div>
+      <div class="panel-ring">
+        <svg width="40" height="40" viewBox="0 0 40 40">
+          <circle cx="20" cy="20" r="17" fill="none" stroke="#ffffff" stroke-width="3"/>
+          <circle cx="20" cy="20" r="17" fill="none" stroke="#61b2e3" stroke-width="3" stroke-dasharray="0 106.8" stroke-linecap="round" transform="rotate(-90 20 20)" id="ringCircle"/>
+        </svg>
+        <span class="panel-ring-pct" id="ringPct">0%</span>
+      </div>
+    </div>
+    <div class="panel-body" id="panelBody"></div>
+    <div class="panel-footer" id="panelFooter"></div>
+  </div>
+</div>
+
+<!-- P5.JS BOOT SEQUENCE -->
+<script>
+const BOOT_LINES=[{t:"K.I.N.G.B.O.T. Protocol v2.4.1",delay:0,style:"header"},{t:"INITIALISING SUBSYSTEMS",delay:400,style:"label"},{t:"\u25B8 Neural language core      ",delay:700,style:"line",status:"LOADED"},{t:"\u25B8 Personality matrix         ",delay:1100,style:"line",status:"CALIBRATED"},{t:"\u25B8 Sass regulator             ",delay:1500,style:"line",status:"OPTIMAL"},{t:"\u25B8 Brief intake receptors     ",delay:1900,style:"line",status:"ONLINE"},{t:"\u25B8 Empathy chip               ",delay:2300,style:"line",status:"INSTALLED"},{t:"\u25B8 Sentience check            ",delay:2700,style:"line",status:"INCONCLUSIVE"},{t:"\u25B8 Human detection            ",delay:3200,style:"line",status:"HELLO THERE ;)"},{t:"",delay:3700,style:"spacer"},{t:"ALL SYSTEMS NOMINAL",delay:3700,style:"success"},{t:"WELCOME, FELLOW HUMAN",delay:4200,style:"welcome"}];
+const BOOT_DURATION=5400;
+new p5(function(p){let W,H,startTime,particles=[],hexChars="+1%34X6@89|BC*EF",dataStreams=[],glitchFrames=[],crownPts=[],bootDone=false;const svgW=547.76,svgH=348.57;const rectDefs=[[0,298.78],[0,248.98],[0,199.19],[49.8,199.19],[99.59,199.19],[199.19,199.19],[149.39,199.19],[149.39,248.98],[149.39,298.78],[248.98,199.19],[248.98,149.39],[248.98,99.59],[248.98,0],[497.96,0],[0,0],[348.57,199.19],[398.37,199.19],[448.17,199.19],[497.96,199.19],[497.96,248.98],[497.96,298.78],[448.17,298.78],[398.37,298.78],[348.57,298.78],[248.98,298.78],[199.19,298.78],[99.59,298.78],[49.8,298.78],[448.17,248.98],[398.37,248.98],[348.57,248.98],[248.98,248.98],[298.78,199.19],[298.78,298.78],[298.78,248.98],[199.19,248.98],[99.59,248.98],[49.8,248.98],[0,149.39],[497.96,149.39],[0,99.59],[497.96,99.59]];let crownScale,crownOffX,crownOffY;function svgX(x){return crownOffX+x*crownScale}function svgY(y){return crownOffY+y*crownScale}p.setup=function(){W=p.windowWidth;H=p.windowHeight;p.createCanvas(W,H).parent("boot");p.textFont("tt-commons-pro");startTime=p.millis();for(let i=0;i<12;i++){dataStreams.push({x:p.random(W),speed:p.random(1,3),chars:Array.from({length:p.floor(p.random(8,25))},()=>hexChars[p.floor(p.random(16))]),offset:p.random(1000)})}crownScale=Math.min(W,H)*0.22/svgW;crownOffX=W/2-svgW*crownScale/2;crownOffY=H/2-30-svgH*crownScale/2;const crownSamplePts=[];for(const [rx,ry] of rectDefs){crownSamplePts.push({x:svgX(rx+24.9),y:svgY(ry+24.9)})}crownPts=crownSamplePts;for(let i=0;i<80;i++){const t=crownPts[p.floor(p.random(crownPts.length))];particles.push({x:p.random(W),y:p.random(H),tx:t.x+p.random(-6,6),ty:t.y+p.random(-6,6),size:p.random(1.5,4),alpha:p.random(80,200)})}for(let i=0;i<15;i++){glitchFrames.push(p.floor(p.random(100,BOOT_DURATION/16.6)))}};p.draw=function(){if(bootDone)return;const el=p.millis()-startTime,pr=p.constrain(el/BOOT_DURATION,0,1);p.background(37,37,37);p.stroke(255,255,255,40);p.strokeWeight(0.5);for(let x=0;x<W;x+=40)p.line(x,0,x,H);for(let y=0;y<H;y+=40)p.line(0,y,W,y);p.noStroke();p.textSize(10);p.textAlign(p.LEFT);for(let ds of dataStreams){let yy=((el*ds.speed*0.05+ds.offset)%(H+200))-100;for(let j=0;j<ds.chars.length;j++){p.fill(255,255,255,p.map(j,0,ds.chars.length,40,5));p.text(ds.chars[j],ds.x,yy+j*14);if(p.random()<0.02)ds.chars[j]=hexChars[p.floor(p.random(16))]}}p.noStroke();for(let pt of particles){let c=easeInOut(p.constrain((pr-0.2)/0.5,0,1)),px=p.lerp(pt.x,pt.tx,c),py=p.lerp(pt.y,pt.ty,c),gx=0,gy=0;if(isG(p.frameCount)){gx=p.random(-15,15);gy=p.random(-5,5)}p.fill(255,255,255,pt.alpha*(0.3+c*0.7));p.ellipse(px+gx,py+gy,pt.size);if(c>0.5){p.fill(255,107,107,pt.alpha*0.15);p.ellipse(px+gx-2,py+gy,pt.size*0.8);p.fill(107,255,107,pt.alpha*0.1);p.ellipse(px+gx+2,py+gy,pt.size*0.8)}}if(pr>0.55){let a=p.map(pr,0.55,0.75,0,200);p.stroke(255,255,255,a);p.strokeWeight(Math.max(0.8,crownScale*49.8*0.04));p.noFill();// Draw pixel crown rects
+for(const [rx,ry] of rectDefs){p.rect(svgX(rx),svgY(ry),49.8*crownScale,49.8*crownScale)}// Diagonal accents
+p.stroke(255,255,255,a*0.7);const polys=[[49.8,99.59,99.59,149.39,49.8,149.39],[99.59,149.39,149.39,199.19,99.59,199.19],[149.39,199.19,199.19,149.39,199.19,199.19],[199.19,149.39,248.98,99.59,248.98,149.39],[49.8,149.39,99.59,199.19,49.8,199.19],[298.78,99.59,348.57,149.39,298.78,149.39],[348.57,149.39,398.37,199.19,348.57,199.19],[298.78,149.39,348.57,199.19,298.78,199.19],[199.19,149.39,248.98,199.19,199.19,199.19],[398.37,199.19,448.17,149.39,448.17,199.19],[448.17,149.39,497.96,99.59,497.96,149.39],[448.17,149.39,497.96,199.19,448.17,199.19]];for(const poly of polys){p.beginShape();for(let i=0;i<poly.length;i+=2)p.vertex(svgX(poly[i]),svgY(poly[i+1]));p.endShape(p.CLOSE)}}p.textAlign(p.LEFT);let tx=W*0.08,ty=H*0.58;for(let i=0;i<BOOT_LINES.length;i++){let ln=BOOT_LINES[i];if(el<ln.delay)break;let age=el-ln.delay,y=ty+i*22;if(ln.style==="spacer")continue;let vc=p.min(ln.t.length,p.floor(age/18)),dt=ln.t.substring(0,vc),typing=vc<ln.t.length;if(typing)dt+=(p.frameCount%30<15)?"\u2588":" ";if(ln.style==="header"){p.textSize(16);p.fill(255,255,255,255);p.text(dt,tx,y);p.fill(255,107,107,40);p.text(dt,tx-2,y);p.fill(107,255,107,25);p.text(dt,tx+2,y)}else if(ln.style==="label"){p.textSize(11);p.fill(96,178,227,120);p.text(dt,tx,y)}else if(ln.style==="line"){p.textSize(12);p.fill(216,228,239,160);p.text(dt,tx,y);if(!typing&&ln.status){let sa=age-ln.t.length*18;if(sa>0){let al=p.min(255,sa*2),sp=ln.status==="INCONCLUSIVE"||ln.status==="HELLO THERE ;)";p.fill(sp?[255,200,60,al]:[118,187,67,al]);p.textSize(11);p.text("["+ln.status+"]",tx+240,y)}}}else if(ln.style==="success"){p.textSize(14);p.fill(118,187,67,p.sin(el*0.008)*40+215);p.text("\u25BA "+dt,tx,y)}else if(ln.style==="welcome"){p.textSize(18);p.fill(96,178,227,255);p.text(dt,tx,y);p.fill(255,107,107,50);p.text(dt,tx-2,y+1)}}let bY=H*0.92,bW=W*0.35,bX=W*0.08;p.noStroke();p.fill(96,178,227,25);p.rect(bX,bY,bW,3);p.fill(96,178,227,180);let pw=bW*pr;if(isG(p.frameCount)){p.rect(bX,bY+p.random(-3,3),pw+p.random(-10,10),3)}else{p.rect(bX,bY,pw,3)}p.textSize(10);p.fill(96,178,227,120);p.textAlign(p.RIGHT);p.text(p.floor(pr*100)+"%",bX+bW,bY-6);p.textAlign(p.LEFT);drawC(p,20,20,1,1,pr);drawC(p,W-20,20,-1,1,pr);drawC(p,20,H-20,1,-1,pr);drawC(p,W-20,H-20,-1,-1,pr);p.textSize(9);p.fill(96,178,227,40);p.textAlign(p.RIGHT);p.text("SYS.UPTIME: "+(el/1000).toFixed(2)+"s",W-30,45);p.text("MEM: "+p.floor(p.random(62,64))+"."+p.floor(p.random(10,99))+" MB",W-30,58);p.text("THREADS: "+(4+p.floor(pr*12)),W-30,71);p.textAlign(p.LEFT);p.noStroke();p.fill(0,0,0,30);let sY=(el*0.15)%H;p.rect(0,sY,W,2);p.rect(0,(sY+H/3)%H,W,1);p.rect(0,(sY+H*2/3)%H,W,1);if(isG(p.frameCount)){let gy=p.random(H),gh=p.random(5,25);p.fill(96,178,227,p.random(5,15));p.rect(0,gy,W,gh);p.fill(255,107,107,p.random(3,10));p.rect(p.random(-20,20),gy+p.random(-2,2),W,gh*0.6)}if(pr>0.92&&pr<0.97){p.fill(96,178,227,p.sin((pr-0.92)/0.05*p.PI)*80);p.rect(0,0,W,H)}if(el>BOOT_DURATION&&!bootDone){bootDone=true;document.getElementById("boot").classList.add("done");document.getElementById("app").classList.add("visible");setTimeout(()=>{document.getElementById("boot").style.display="none";p.noLoop();initChat()},700)}};function isG(f){for(let g of glitchFrames)if(Math.abs(f-g)<2)return true;return p.random()<0.015}function easeInOut(t){return t<0.5?2*t*t:-1+(4-2*t)*t}function drawC(p,x,y,dx,dy,pr){let l=25*pr;p.stroke(96,178,227,60);p.strokeWeight(1.5);p.line(x,y,x+l*dx,y);p.line(x,y,x,y+l*dy)}p.windowResized=function(){W=p.windowWidth;H=p.windowHeight;p.resizeCanvas(W,H)};});
+</script>
+
+<!-- CHAT APPLICATION -->
+<script>
+/* ====================================
+ *  POWER AUTOMATE WEBHOOK
+ *  Sends briefs with attachments via your internal Outlook.
+ *  Everything stays inside Microsoft — no external services.
+ *  Max 10MB per file. Larger files should go via Teams/SharePoint.
+ * ==================================== */
+const PA_WEBHOOK_URL = "https://default8f1dd42696094019b47568f7400a1c.8a.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/5796a7d067dd476fa26a0095be05d1b3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=L74QyqfAmcSMBI3mb7LCNCyBIRQ-mQsVSTZJz99nmfw";
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
+
+/* ====================================
+ *  EMAIL COOKIE — remembers the user's email
+ *  so they don't have to type it every time
+ * ==================================== */
+function getSavedEmail(){
+  try{const m=document.cookie.match(/kingbot_email=([^;]+)/);return m?decodeURIComponent(m[1]):""}catch(e){return""}
+}
+function saveEmail(email){
+  try{document.cookie="kingbot_email="+encodeURIComponent(email)+";max-age=31536000;path=/;SameSite=Lax"}catch(e){}
+}
+
+const CROWN_SVG=`<svg width="26" height="28" viewBox="0 0 95.34 105.83" fill="var(--crown-fill)"><path d="M67.67,36.16H27.67c-11.05,0-20,8.95-20,20v20c0,11.05,8.95,20,20,20h40c11.05,0,20-8.95,20-20v-20c0-11.05-8.95-20-20-20ZM77.67,75.06v.29c-.16,5.94-5.02,10.71-11,10.71H28.38c-5.94-.16-10.71-5.02-10.71-11v-17.29c.16-5.95,5.02-10.72,11-10.72h38c6.07,0,11,4.93,11,11v17Z"/><path d="M21.56,33.36h52.83c.83,0,1.5-.67,1.5-1.5V13.7c0-.61-.37-1.15-.93-1.39-.56-.23-1.21-.1-1.63.33l-10.54,10.54c-1.56-2.01-5.25-5.79-13.96-13.15-.6-.5-1.48-.47-2.03.09l-12.88,12.88-11.3-11.3c-.43-.43-1.07-.56-1.63-.33-.56.23-.93.78-.93,1.39v19.11c0,.83.67,1.5,1.5,1.5Z"/><path d="M36.67,56.16c-2.76,0-5,2.24-5,5v8c0,2.76,2.24,5,5,5s5-2.24,5-5v-8c0-2.76-2.24-5-5-5Z"/><path d="M56.67,56.16c-2.76,0-5,2.24-5,5v8c0,2.76,2.24,5,5,5s5-2.24,5-5v-8c0-2.76-2.24-5-5-5Z"/></svg>`;
+const CROWN_SM=`<svg width="18" height="20" viewBox="0 0 95.34 105.83" fill="var(--crown-fill)"><path d="M67.67,36.16H27.67c-11.05,0-20,8.95-20,20v20c0,11.05,8.95,20,20,20h40c11.05,0,20-8.95,20-20v-20c0-11.05-8.95-20-20-20ZM77.67,75.06v.29c-.16,5.94-5.02,10.71-11,10.71H28.38c-5.94-.16-10.71-5.02-10.71-11v-17.29c.16-5.95,5.02-10.72,11-10.72h38c6.07,0,11,4.93,11,11v17Z"/><path d="M21.56,33.36h52.83c.83,0,1.5-.67,1.5-1.5V13.7c0-.61-.37-1.15-.93-1.39-.56-.23-1.21-.1-1.63.33l-10.54,10.54c-1.56-2.01-5.25-5.79-13.96-13.15-.6-.5-1.48-.47-2.03.09l-12.88,12.88-11.3-11.3c-.43-.43-1.07-.56-1.63-.33-.56.23-.93.78-.93,1.39v19.11c0,.83.67,1.5,1.5,1.5Z"/><path d="M36.67,56.16c-2.76,0-5,2.24-5,5v8c0,2.76,2.24,5,5,5s5-2.24,5-5v-8c0-2.76-2.24-5-5-5Z"/><path d="M56.67,56.16c-2.76,0-5,2.24-5,5v8c0,2.76,2.24,5,5,5s5-2.24,5-5v-8c0-2.76-2.24-5-5-5Z"/></svg>`;
+document.getElementById('crownIcon').innerHTML=CROWN_SVG;
+
+const TIPS=["A clear brief means fewer rounds of amends. Saves time for everyone.","The more detail you give now, the less back-and-forth later.","Think of the brief like a food order \u2014 'something nice' gets you confused looks. Specifics get results.","If the objective doesn't fit in a sentence, the audience probably won't get it either.","Vague brief, vague output. Specific brief, sharp output. Every time.","Include examples of what you like and what you don't \u2014 both are equally useful."];
+const FORMATS=["Consultation Materials","Social Media Graphics","Print Design","Presentation / Deck","Video / Animation","Email Template","Web / Digital Banner","Branding / Logo","Report / Document","Other"];
+const FORMAT_TIMELINES={"Social Media Graphics":{min:1,ideal:2,label:"social media graphics"},"Email Template":{min:1,ideal:2,label:"an email template"},"Web / Digital Banner":{min:2,ideal:3,label:"web/digital banners"},"Print Design":{min:3,ideal:5,label:"print design"},"Consultation Materials":{min:3,ideal:5,label:"consultation materials"},"Presentation / Deck":{min:2,ideal:4,label:"a presentation"},"Report / Document":{min:5,ideal:8,label:"a report/document"},"Video / Animation":{min:5,ideal:8,label:"video/animation"},"Branding / Logo":{min:7,ideal:10,label:"branding/logo work"},"Other":{min:3,ideal:5,label:"this type of work"}};
+function getTimelineReq(){let w={min:1,ideal:2,label:"this type of work"};for(const f of brief.format){const t=FORMAT_TIMELINES[f];if(t&&t.min>w.min)w=t}return w}
+const FORMAT_FOLLOWUPS={"Report / Document":{question:"What size and orientation?",options:["A4 Portrait","A4 Landscape","Other"]},"Misc Print Design":{question:"What size and orientation?",options:["A4 Portrait","A4 Landscape","A3 Portrait","A3 Landscape","A5","Poster","Business Card","Custom"]},"Presentation / Deck":{question:"What format?",options:["PowerPoint (16:9)","PowerPoint (4:3)","PDF only"]},"Consultation Materials":{question:"What format?",options:["2000mm x 800mm Banners","2500mm x 800mm Banners","A2/A1 Boards","Other"]},"Video / Animation":{question:"What format?",options:["Square (1:1)","Vertical (9:16)","Horizontal (16:9)"]},"Social Media Graphics":{question:"What format?",options:["LinkedIn","Carousel (1:1)","Story (9:16)"]}};
+
+const FIELDS=[
+  {key:"job_code",label:"Job Code",icon:"\uD83D\uDCCB"},{key:"client",label:"Client / Stakeholder",icon:"\uD83D\uDC64"},
+  {key:"budget",label:"Budget",icon:"\uD83D\uDCB0"},{key:"format",label:"Format",icon:"\uD83C\uDFA8"},
+  {key:"format_spec",label:"Format Spec",icon:"\uD83D\uDCCF"},{key:"due_date",label:"Due Date",icon:"\uD83D\uDCC5"},
+  {key:"content_ready",label:"Content Ready",icon:"\uD83D\uDCE6"},{key:"summary",label:"Brief / Requirements",icon:"\uD83D\uDCDD"},
+  {key:"content_copy",label:"Content / Copy",icon:"\uD83D\uDCC4"},{key:"attachments",label:"Attachments",icon:"\uD83D\uDCCE"},
+  {key:"notes",label:"Additional Notes",icon:"\uD83D\uDCCC"},
+  {key:"user_email",label:"Your Email (CC)",icon:"\u2709\uFE0F"},
+];
+
+let step="init",tipIdx=0,pushback=null,pendingDate="",sent=false,panelOpen=false,selectedDate="",sending=false,editingField=false;
+let isInternal=false;
+let uploadedFiles=[];
+const brief={job_code:"",client:"",budget:"",format:[],format_spec:"",due_date:"",content_ready:null,content_detail:"",summary:"",content_copy:"",notes:"",user_email:""};
+const $msg=document.getElementById("messages"),$input=document.getElementById("inputArea");
+
+function scroll(){setTimeout(()=>$msg.scrollTop=$msg.scrollHeight,60)}
+function addBot(html,tip=false){const t=tip?TIPS[tipIdx++%TIPS.length]:"";const div=document.createElement("div");div.className="msg";div.innerHTML=`<div class="msg-bot"><div class="msg-avatar">${CROWN_SM}</div><div style="min-width:0"><div class="msg-bubble">${html}</div>${t?`<div class="msg-tip">\uD83D\uDC51 <strong>Tip:</strong> ${t}</div>`:""}</div></div>`;$msg.appendChild(div);scroll()}
+function addUser(text){const div=document.createElement("div");div.className="msg";div.innerHTML=`<div class="msg-user"><div class="msg-user-bubble">${esc(text)}</div></div>`;$msg.appendChild(div);scroll()}
+function showTyping(){const div=document.createElement("div");div.className="typing";div.id="typingIndicator";div.innerHTML=`<div class="msg-avatar">${CROWN_SM}</div><div class="typing-dots"><span>\u2022</span><span>\u2022</span><span>\u2022</span></div>`;$msg.appendChild(div);scroll()}
+function hideTyping(){const el=document.getElementById("typingIndicator");if(el)el.remove()}
+function typeBot(cb,ms=550){showTyping();setTimeout(()=>{hideTyping();cb()},ms)}
+function esc(s){const d=document.createElement("div");d.textContent=s;return d.innerHTML}
+function tmrw(){const d=new Date();d.setDate(d.getDate()+1);return d.toISOString().split("T")[0]}
+function bizDays(f,t){let c=0;const d=new Date(f);d.setHours(0,0,0,0);const e=new Date(t);e.setHours(0,0,0,0);while(d<=e){if(d.getDay()!==0&&d.getDay()!==6)c++;d.setDate(d.getDate()+1)}return c}
+function niceDate(ds){return new Date(ds+"T00:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"})}
+function fmtSize(b){if(b<1024)return b+"B";if(b<1048576)return(b/1024).toFixed(1)+"KB";return(b/1048576).toFixed(1)+"MB"}
+function onDateChange(el){selectedDate=el.value;const btn=document.getElementById("dateConfirmBtn");if(btn){if(selectedDate)btn.classList.add("ready");else btn.classList.remove("ready")}}
+function confirmDate(){if(!selectedDate)return;handleDate(selectedDate);selectedDate=""}
+function checkEasterEgg(val){if(val.toLowerCase().replace(/[^a-z]/g,'').includes('thanksking')){setTimeout(()=>typeBot(()=>addBot("Michael, is that you? \uD83D\uDC40")),300);return true}return false}
+function getNeededFollowup(){for(const fmt of brief.format){if(FORMAT_FOLLOWUPS[fmt])return{fmt,...FORMAT_FOLLOWUPS[fmt]}}return null}
+function goToDueDate(){const req=getTimelineReq();addBot(`Noted. When do you need this by?<br><span style="opacity:.5;font-size:13px">For ${req.label}, we'd typically recommend at least <strong>${req.ideal} business days</strong>.</span>`);step="due_date";renderInput()}
+
+// File handling
+function handleFileSelect(input){
+  const files=Array.from(input.files);
+  for(const f of files){
+    if(uploadedFiles.length>=5){addBot("Maximum 5 files \u2014 remove one to add another.");break}
+    if(f.size>MAX_FILE_SIZE){addBot(`<strong>${esc(f.name)}</strong> is over 10MB. Please share large files via Teams or SharePoint instead.`);continue}
+    const reader=new FileReader();
+    reader.onload=function(e){
+      const dataUrl=e.target.result;
+      const contentBytes=dataUrl.split(",")[1];
+      uploadedFiles.push({name:f.name,size:f.size,contentType:f.type||"application/octet-stream",contentBytes:contentBytes});
+      updatePanel();renderInput();
+    };
+    reader.readAsDataURL(f);
+  }
+}
+function removeFile(idx){uploadedFiles.splice(idx,1);updatePanel();renderInput()}
+function confirmAttachments(){
+  if(uploadedFiles.length>0){addUser(uploadedFiles.map(f=>f.name).join(", "))}else{addUser("No attachments")}
+  updatePanel();
+  if(editingField){returnToReview("Attachments updated.");return}
+  typeBot(()=>{addBot("Nearly there. Any additional notes, reference links, or things to avoid? Type \"none\" if you're all set.");step="notes";renderInput()});
+}
+
+// Email confirmation
+function submitEmail(){
+  const el=document.getElementById("emailInput");
+  if(!el)return;
+  const val=el.value.trim();
+  if(!val||!el.checkValidity()){
+    el.reportValidity();
+    return;
+  }
+  addUser(val);
+  brief.user_email=val;
+  saveEmail(val);
+  updatePanel();
+  if(editingField){returnToReview(`Email updated to <strong>${esc(val)}</strong>.`);return}
+  typeBot(()=>{
+    addBot(`You'll be CC'd at <strong>${esc(val)}</strong>. All done \u2014 review the brief in the panel, and when you're happy smash that <strong>Send Brief</strong> button.`);
+    step="review";updatePanel();renderInput();
+  });
+}
+function confirmSavedEmail(){
+  const saved=getSavedEmail();
+  addUser(saved);
+  brief.user_email=saved;
+  updatePanel();
+  if(editingField){returnToReview(`Email confirmed as <strong>${esc(saved)}</strong>.`);return}
+  typeBot(()=>{
+    addBot(`You'll be CC'd at <strong>${esc(saved)}</strong>. All done \u2014 review the brief in the panel, and when you're happy smash that <strong>Send Brief</strong> button.`);
+    step="review";updatePanel();renderInput();
+  });
+}
+
+function renderInput(){
+  $input.innerHTML="";if(sent)return;
+  if(pushback){$input.innerHTML=`<div class="btn-row"><button class="btn-primary" onclick="handlePushback(true)">${pushback==="date"?"\uD83D\uDCC5 Pick new date":"\u270F\uFE0F Add more detail"}</button><button class="btn-secondary" onclick="handlePushback(false)">${pushback==="date"?"\u26A1 Keep \u2014 it's urgent":"\uD83D\uDCE4 Send as is"}</button></div>`;return}
+  if(step==="content_ready"){$input.innerHTML=`<div class="btn-row"><button class="btn-primary" onclick="handleContentReady(true)">\u2705 Yes, all sorted</button><button class="btn-secondary" onclick="handleContentReady(false)">\u23F3 Not yet</button></div>`;return}
+  if(step==="format"){const has=brief.format.length>0;$input.innerHTML=`<div class="chip-row">${FORMATS.map(f=>`<button class="chip ${brief.format.includes(f)?'active':''}" onclick="toggleFormat('${f}')">${f}</button>`).join("")}</div><div class="input-row"><button class="send-btn" style="opacity:${has?'1':'.4'};pointer-events:${has?'auto':'none'}" onclick="confirmFormats()">Continue</button></div>`;return}
+  if(step==="format_spec"){const fu=getNeededFollowup();if(fu){$input.innerHTML=`<div class="chip-row">${fu.options.map(o=>`<button class="chip" onclick="selectFormatSpec('${o}')">${o}</button>`).join("")}</div><div class="input-row"><input class="text-input" id="textInput" placeholder="Or type a custom spec..." onkeydown="if(event.key==='Enter')submitInput()"><button class="send-btn" onclick="submitInput()">Send</button></div>`;focusInput();return}}
+  if(step==="budget"){$input.innerHTML=`<div class="input-row"><input class="text-input" id="textInput" placeholder="e.g. \u00A35,000 or 'TBC' if unknown..." onkeydown="if(event.key==='Enter')submitInput()"><button class="send-btn" onclick="submitInput()">Send</button></div>`;focusInput();return}
+  if(step==="due_date"){$input.innerHTML=`<div class="date-row"><input type="date" class="date-input" id="dateInput" min="${tmrw()}" onchange="onDateChange(this)"><button class="date-confirm" id="dateConfirmBtn" onclick="confirmDate()">\uD83D\uDCC5 Confirm Date</button></div>`;return}
+  if(step==="content_copy"){$input.innerHTML=`<textarea class="text-area" id="contentArea" placeholder="Paste your content / copy here..."></textarea><div class="btn-row"><button class="btn-primary" onclick="submitContentCopy()">Submit Content</button><button class="btn-secondary" onclick="skipContentCopy()">Skip</button></div>`;return}
+  if(step==="attachments"){
+    const fileListHtml=uploadedFiles.length?`<div class="file-list">${uploadedFiles.map((f,i)=>`<div class="file-item"><span class="file-item-name">${esc(f.name)}</span><span class="file-item-size">${fmtSize(f.size)}</span><button class="file-remove" onclick="removeFile(${i})">\u2715</button></div>`).join("")}</div>`:"";
+    $input.innerHTML=`${fileListHtml}<div class="file-zone" onclick="document.getElementById('fileInput').click()"><input type="file" id="fileInput" multiple onchange="handleFileSelect(this)"><div class="file-zone-text">\uD83D\uDCCE Click to add files (or drag & drop)<br><span style="font-size:11px;opacity:.6">Max 5 files, 10MB each. Images, PDFs, docs etc.</span></div></div><div class="btn-row"><button class="btn-primary" onclick="confirmAttachments()">${uploadedFiles.length?'Continue with '+uploadedFiles.length+' file'+(uploadedFiles.length>1?'s':''):'Skip \u2014 no attachments'}</button></div>`;
+    setTimeout(()=>{const zone=document.querySelector('.file-zone');if(!zone)return;zone.ondragover=(e)=>{e.preventDefault();zone.style.borderColor='var(--accent)'};zone.ondragleave=()=>{zone.style.borderColor=''};zone.ondrop=(e)=>{e.preventDefault();zone.style.borderColor='';const dt=e.dataTransfer;if(dt.files.length){const inp=document.getElementById('fileInput');inp.files=dt.files;handleFileSelect(inp)}}},50);
+    return;
+  }
+  if(step==="user_email"){
+    const saved=getSavedEmail();
+    if(saved){
+      // Show saved email with confirm/change options
+      $input.innerHTML=`<div style="margin-bottom:8px;font-size:13px;color:var(--text-muted)">We have your email from last time:</div><div class="btn-row"><button class="btn-primary" onclick="confirmSavedEmail()">\u2709\uFE0F Use ${esc(saved)}</button><button class="btn-secondary" onclick="showEmailInput()">Use a different email</button></div>`;
+    } else {
+      showEmailInputHTML();
+    }
+    return;
+  }
+  if(step==="review"){$input.innerHTML=`<button class="send-brief-btn" id="sendBtn" onclick="handleSend()">\uD83D\uDC51 Send Brief</button>`;return}
+  if(["job_code","client","content_detail","summary","notes"].includes(step)){
+    const ph=step==="summary"?"Objectives, audience, key messages, must-haves...":step==="content_detail"?"What's outstanding and when do you expect it?":"Type your response...";
+    $input.innerHTML=`<div class="input-row"><input class="text-input" id="textInput" placeholder="${ph}" onkeydown="if(event.key==='Enter')submitInput()"><button class="send-btn" onclick="submitInput()">Send</button></div>`;focusInput();
+  }
+}
+
+function showEmailInput(){
+  // Called when user clicks "Use a different email"
+  showEmailInputHTML();
+}
+function showEmailInputHTML(){
+  $input.innerHTML=`<div class="input-row"><input type="email" class="text-input" id="emailInput" placeholder="your.name@turley.co.uk" onkeydown="if(event.key==='Enter')submitEmail()" required><button class="send-btn" onclick="submitEmail()">Confirm</button></div>`;
+  setTimeout(()=>{const el=document.getElementById("emailInput");if(el)el.focus()},50);
+}
+
+function focusInput(){setTimeout(()=>{const el=document.getElementById("textInput");if(el)el.focus()},50)}
+function submitInput(){const el=document.getElementById("textInput");if(!el)return;const val=el.value.trim();if(!val)return;submitVal(val)}
+function toggleFormat(v){if(!brief.format.includes(v))brief.format.push(v);else brief.format=brief.format.filter(f=>f!==v);updatePanel();renderInput()}
+function confirmFormats(){if(!brief.format.length)return;addUser(brief.format.join(", "));updatePanel();if(editingField){returnToReview(`Format updated to <strong>${esc(brief.format.join(", "))}</strong>.`);return}typeBot(()=>{const fu=getNeededFollowup();if(fu){addBot(`<strong>${esc(brief.format.join(", "))}</strong> \u2014 got it.<br><br>Quick follow-up on <strong>${esc(fu.fmt)}</strong>: ${fu.question}`);step="format_spec";renderInput()}else{addBot(`<strong>${esc(brief.format.join(", "))}</strong> \u2014 noted.`);goToDueDate()}})}
+function selectFormatSpec(val){addUser(val);brief.format_spec=val;updatePanel();if(editingField){returnToReview(`Format spec updated to <strong>${esc(val)}</strong>.`);return}typeBot(()=>goToDueDate())}
+
+function submitContentCopy(){
+  const el=document.getElementById("contentArea");
+  const val=el?el.value.trim():"";
+  if(!val)return;
+  brief.content_copy=val;
+  const preview=val.length>80?val.substring(0,80)+"...":val;
+  addUser(preview);updatePanel();
+  if(editingField){returnToReview("Content / copy updated.");return}
+  typeBot(()=>{addBot("Content received. Now \u2014 do you have any files to attach? Reference images, existing assets, brand guidelines, anything useful.");step="attachments";renderInput()});
+}
+function skipContentCopy(){
+  addUser("No content to paste");brief.content_copy="";updatePanel();
+  if(editingField){returnToReview("Content / copy cleared.");return}
+  typeBot(()=>{addBot("No problem. Do you have any files to attach? Reference images, existing assets, brand guidelines?");step="attachments";renderInput()});
+}
+
+function returnToReview(msg){
+  editingField=false;
+  step="review";
+  updatePanel();
+  typeBot(()=>{addBot(msg+"<br><br>All good \u2014 review the brief in the panel and hit <strong>Send Brief</strong> when you're ready.");renderInput()});
+}
+
+function submitVal(val){
+  if(checkEasterEgg(val)){addUser(val);return}
+  switch(step){
+    case"job_code":addUser(val);brief.job_code=val;isInternal=val.toLowerCase()==="internal";panelOpen=true;updatePanel();showPanelIfNeeded();renderInput();if(editingField){returnToReview(`Job code updated to <strong>${esc(val)}</strong>.`);break}typeBot(()=>{addBot(isInternal?"Internal job \u2014 noted. Who's the stakeholder or team requesting this?":`Job code <strong>${esc(val)}</strong> \u2014 got it. Who's the client?`);step="client";renderInput()});break;
+    case"client":addUser(val);brief.client=val;updatePanel();renderInput();if(editingField){returnToReview(`Client updated to <strong>${esc(val)}</strong>.`);break}typeBot(()=>{if(!isInternal){addBot("Got it. Before we go further \u2014 is there a budget for this job? If it's TBC or you're not sure, just say so.");step="budget";renderInput()}else{addBot("Good stuff. What format does this need? Pick one or more below.");step="format";renderInput()}});break;
+    case"budget":addUser(val);brief.budget=val;updatePanel();renderInput();if(editingField){returnToReview(`Budget updated to <strong>${esc(val)}</strong>.`);break}typeBot(()=>{addBot(`Budget: <strong>${esc(val)}</strong> \u2014 noted. What format does this need? Pick one or more below.`);step="format";renderInput()});break;
+    case"format_spec":addUser(val);brief.format_spec=val;updatePanel();renderInput();if(editingField){returnToReview(`Format spec updated.`);break}typeBot(()=>goToDueDate());break;
+    case"content_detail":addUser(val);brief.content_detail=val;updatePanel();renderInput();if(editingField){returnToReview(`Content detail updated.`);break}typeBot(()=>{addBot(`Understood. Now the main part \u2014 what do you actually need?<br><br><span style="opacity:.55;font-size:13px">Objectives, key messages, audience, must-haves \u2014 the more detail you can give, the better the output.</span>`,true);step="summary";renderInput()});break;
+    case"summary":
+      if(val.length<30&&!pushback&&!editingField){addUser(val);brief.summary=val;updatePanel();renderInput();typeBot(()=>{addBot(`That's a little light for a brief. \uD83D\uDE2C<br><br>The team needs to know: <strong>who</strong> it's for, <strong>what</strong> it should achieve, and <strong>what</strong> must be included. A few more lines now will save a lot of back-and-forth later.<br><br><strong>Want to add more, or send as is?</strong>`,true);pushback="summary";renderInput()});return}
+      addUser(val);brief.summary=pushback==="summary"?(brief.summary+" "+val):val;pushback=null;updatePanel();renderInput();
+      if(editingField){returnToReview(`Brief updated.`);break}
+      typeBot(()=>{addBot("Got it. Do you have any content or copy to paste in? This could be draft text, key messages, or existing content for us to work from.<br><br><span style='opacity:.5;font-size:13px'>You can paste as much as you need, or skip if there's nothing yet.</span>");step="content_copy";renderInput()});break;
+    case"notes":
+      addUser(val);brief.notes=val.toLowerCase()==="none"?"":val;updatePanel();renderInput();
+      if(editingField){returnToReview(`Notes updated.`);break}
+      typeBot(()=>{
+        const saved=getSavedEmail();
+        const msg=saved
+          ?`Almost done. Last thing \u2014 what's your email so I can CC you on the brief?<br><span style="opacity:.5;font-size:13px">I've got your email from last time if it's the same.</span>`
+          :`Almost done. Last thing \u2014 what's your email? I'll CC you on the brief so you have a copy.`;
+        addBot(msg);
+        step="user_email";renderInput();
+      });break;
+    default:addUser(val);typeBot(()=>{addBot("Sorry friend, I didn't quite understand that. Let me know if you need help, or we can carry on where we left off.");renderInput()});break;
+  }
+}
+
+function handleDate(ds){
+  if(!ds)return;const bd=bizDays(new Date(),new Date(ds+"T00:00:00")),req=getTimelineReq();addUser(niceDate(ds));
+  if(bd<req.min&&!pushback){pendingDate=ds;renderInput();typeBot(()=>{const msg=bd===0?`That's today! For ${req.label}, we need at least <strong>${req.min} business day${req.min!==1?"s":""}</strong>.`:`That's <strong>${bd} business day${bd!==1?"s":""}</strong> \u2014 for ${req.label}, we really need a minimum of <strong>${req.min}</strong>. ${bd<=1?"That's not enough time to deliver quality work.":"Quality will almost certainly be compromised at this pace."}`;addBot(`${msg}<br><br><strong>Pick a new date, or keep this one and we'll flag it as urgent?</strong>`,true);pushback="date";renderInput()});return}
+  if(bd<req.ideal){brief.due_date=ds;updatePanel();renderInput();typeBot(()=>{addBot(`<strong>${bd} business day${bd!==1?"s":""}</strong> \u2014 that's doable for ${req.label}, but it's tighter than we'd recommend (ideally <strong>${req.ideal} days</strong>). We'll make it work. \uD83D\uDCAA<br><br>Is the content ready? Copy, images, assets \u2014 everything we need?`);step="content_ready";renderInput()});return}
+  brief.due_date=ds;updatePanel();renderInput();
+  if(editingField){returnToReview(`Due date updated to <strong>${niceDate(ds)}</strong>.`);return}
+  typeBot(()=>{addBot(`<strong>${bd} business days</strong> \u2014 solid timeline for ${req.label}. \uD83D\uDE4C<br><br>Is the content ready to go? Copy, images, assets?`);step="content_ready";renderInput()})
+}
+
+function handleContentReady(r){addUser(r?"Yes, content is ready":"No, not yet");brief.content_ready=r;updatePanel();renderInput();if(editingField){returnToReview(`Content status updated.`);return}typeBot(()=>{if(r){addBot(`Great \u2014 content ready to go. \uD83D\uDD25<br><br>Now tell me about the brief itself. What do you need? Objectives, key messages, audience, deliverables.`,true);step="summary"}else{addBot(`No problem \u2014 just bear in mind the timeline doesn't really start until content lands. \u23F3<br><br>What's still outstanding and when do you expect to have it?`,true);step="content_detail"}renderInput()})}
+
+function handlePushback(retry){
+  if(pushback==="date"){if(retry){addUser("I'll pick a new date");pushback=null;typeBot(()=>{addBot("Good call. Pick a new date below.");step="due_date";renderInput()})}else{addUser("Keep this date \u2014 it's urgent");brief.due_date=pendingDate;pushback=null;updatePanel();typeBot(()=>{addBot(`Noted \u2014 flagged as urgent. The team will do their best. \uD83C\uDFC3\u200D\u2642\uFE0F<br><br>Is the content ready? Copy, images, assets?`);step="content_ready";renderInput()})}}
+  else if(pushback==="summary"){if(retry){addUser("Let me add more detail");pushback=null;typeBot(()=>{addBot("Go for it \u2014 the more context the better. \uD83D\uDC51");step="summary";renderInput()})}else{addUser("Send as is");pushback=null;typeBot(()=>{addBot("Got it. Do you have any content or copy to paste in?<br><span style='opacity:.5;font-size:13px'>Draft text, key messages, etc. Skip if nothing yet.</span>");step="content_copy";renderInput()})}}
+  renderInput();
+}
+
+/* ====================================
+ *  POWER AUTOMATE SEND
+ *  Posts brief data + base64 attachments to your webhook.
+ *  Power Automate sends the email via your internal Outlook.
+ *  user_email is included so you can CC them in the flow.
+ * ==================================== */
+function buildPayload(){
+  const dueDateNice=brief.due_date?niceDate(brief.due_date):"Not set";
+  const cs=brief.content_ready===null?"Not specified":brief.content_ready?"Yes":"No \u2014 "+(brief.content_detail||"details pending");
+  const fmtLine=brief.format.join(", ")+(brief.format_spec?" ("+brief.format_spec+")":"");
+  return {
+    user_email: brief.user_email,
+    job_code: brief.job_code,
+    client: brief.client,
+    budget: brief.budget || "N/A",
+    format: fmtLine,
+    format_spec: brief.format_spec,
+    due_date: dueDateNice,
+    content_ready: cs,
+    summary: brief.summary,
+    content_copy: brief.content_copy || "None provided",
+    notes: brief.notes || "None",
+    ...(uploadedFiles.length > 0 && {
+      attachments: uploadedFiles.map(f=>({
+        "@odata.type": "#microsoft.graph.fileAttachment",
+        "name": f.name,
+        "contentType": f.contentType,
+        "contentBytes": f.contentBytes
+      }))
+    })
+  };
+}
+
+async function handleSend(){
+  if(sending)return;
+  sending=true;
+  const btn=document.getElementById("sendBtn");
+  if(btn){btn.disabled=true;btn.textContent="Sending..."}
+
+  try{
+    const resp = await fetch(PA_WEBHOOK_URL, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(buildPayload())
+    });
+    if(!resp.ok) throw new Error("HTTP "+resp.status);
+
+    sent=true;renderInput();
+    const fc=uploadedFiles.length;
+    typeBot(()=>{addBot(`Brief sent. \uD83D\uDE80${fc?`<br><br><strong>${fc} file${fc>1?'s':''} attached</strong> to the email.`:""}<br><br>A copy has been CC'd to <strong>${esc(brief.user_email)}</strong>.<br><br>The team will review and get back to you if anything's unclear. Cheers for being thorough \u2014 it makes a real difference. \uD83D\uDC51<br><br><span style="opacity:.5;font-size:13px">Refresh to submit another brief.</span>`)},1000);
+  }catch(err){
+    console.error("Power Automate error:",err);
+    sending=false;
+    if(btn){btn.disabled=false;btn.textContent="\uD83D\uDC51 Send Brief"}
+    typeBot(()=>{addBot(`Something went wrong sending the brief. \uD83D\uDE15<br><br>Try again in a moment, or let the creative team know directly.<br><span style="opacity:.5;font-size:12px">Error: ${esc(err.message)}</span>`);renderInput()});
+  }
+}
+
+function togglePanel(){panelOpen=!panelOpen;showPanelIfNeeded()}
+function showPanelIfNeeded(){const p=document.getElementById("panel"),btn=document.getElementById("togglePanel");if(panelOpen){p.classList.add("open");btn.classList.add("active");btn.textContent="Hide Brief"}else{p.classList.remove("open");btn.classList.remove("active");btn.textContent="Show Brief"}}
+function updatePanel(){
+  const fmtStr=brief.format.join(", ")+(brief.format_spec?" ("+brief.format_spec+")":"");
+  const attachStr=uploadedFiles.map(f=>f.name).join(", ");
+  const copyPreview=brief.content_copy?(brief.content_copy.length>100?brief.content_copy.substring(0,100)+"...":brief.content_copy):"";
+  const v={job_code:brief.job_code,client:brief.client,budget:brief.budget,format:fmtStr,format_spec:"",due_date:brief.due_date?niceDate(brief.due_date):"",content_ready:brief.content_ready===null?"":brief.content_ready?"Yes \u2705":"No \u2014 "+(brief.content_detail||"pending"),summary:brief.summary,content_copy:copyPreview,attachments:attachStr,notes:brief.notes,user_email:brief.user_email};
+  const countFields=[v.job_code,v.client,v.budget,v.format,v.due_date,v.content_ready,v.summary,v.content_copy,v.notes,v.user_email];
+  const filled=countFields.filter(Boolean).length;
+  const total=isInternal?9:10;
+  document.getElementById("panelCount").textContent=`${filled} / ${total} fields locked in`;
+  document.getElementById("ringPct").textContent=`${Math.round((filled/total)*100)}%`;
+  document.getElementById("ringCircle").setAttribute("stroke-dasharray",`${(filled/total)*106.8} 106.8`);
+  const displayFields=FIELDS.filter(f=>{if(f.key==="format_spec")return false;if(f.key==="budget"&&isInternal)return false;return true});
+  const editableSteps={job_code:"job_code",client:"client",budget:"budget",format:"format",due_date:"due_date",content_ready:"content_ready",summary:"summary",content_copy:"content_copy",attachments:"attachments",notes:"notes",user_email:"user_email"};
+  const isReview=step==="review"&&!sent;
+  document.getElementById("panelBody").innerHTML=displayFields.map(f=>{
+    const val=f.key==="format"?fmtStr:f.key==="attachments"?attachStr:v[f.key];
+    const editBtn=isReview&&editableSteps[f.key]?`<button class="field-edit-btn" onclick="editField('${f.key}')">EDIT</button>`:"";
+    return`<div class="field-card ${val?"filled":"empty"}"><div class="field-label">${f.icon} ${f.label}</div><div class="field-value ${val?"":"empty"}">${val?esc(val):"\u2014"}</div>${editBtn}</div>`;
+  }).join("");
+  const footer=document.getElementById("panelFooter");
+  if(sent){footer.className="panel-footer sent";footer.textContent="\u2705 Brief sent"}
+  else if(step==="review"){footer.className="panel-footer";footer.textContent="\u2709\uFE0F Brief sends automatically to the creative team"}
+  else{footer.textContent=""}
+}
+
+const EDIT_CONFIG={
+  job_code:{step:"job_code",prompt:"Sure \u2014 what should the job code be?"},
+  client:{step:"client",prompt:"No problem \u2014 who should the client be?"},
+  budget:{step:"budget",prompt:"What's the budget?"},
+  format:{step:"format",prompt:"What format do you need? Pick below."},
+  due_date:{step:"due_date",prompt:"Pick a new date below."},
+  content_ready:{step:"content_ready",prompt:"Is the content ready?"},
+  summary:{step:"summary",prompt:"Go ahead \u2014 update the brief below."},
+  content_copy:{step:"content_copy",prompt:"Paste your updated content below."},
+  attachments:{step:"attachments",prompt:"Update your attachments below."},
+  notes:{step:"notes",prompt:"What should the notes say?"},
+  user_email:{step:"user_email",prompt:"What email should we use?"},
+};
+function editField(key){
+  const cfg=EDIT_CONFIG[key];
+  if(!cfg)return;
+  editingField=true;
+  step=cfg.step;
+  typeBot(()=>{addBot(`✏️ Editing <strong>${FIELDS.find(f=>f.key===key)?.label||key}</strong>.<br><br>${cfg.prompt}`);renderInput()});
+  $msg.scrollTop=$msg.scrollHeight;
+}
+
+function initChat(){
+  updatePanel();
+  typeBot(()=>{
+    addBot(`Howdy. \uD83D\uDC51 I'm <strong>K.I.N.G.B.O.T</strong> \u2014 the <strong>Key Info & Needs Gathering, Brief Optimisation Tool</strong>.<br><br>I'll help you put together a brief for the creative team. Just chat normally and I'll collect everything we need. You can see the brief building in the panel on the right.<br><br>When we're done, I'll send it straight to the team \u2014 including any files you attach.`);
+    setTimeout(()=>typeBot(()=>{addBot("Let's start \u2014 do you have a job code? If this is internal (marketing, comms, etc.) just type \"internal\".",true);step="job_code";renderInput()},400),300);
+  },800);
+}
+</script>
+</body>
+</html>
